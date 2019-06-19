@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <PackageProjectUrl>https://qrcode.oxage.net</PackageProjectUrl>
+    <Authors>papnkukn</Authors>
+    <Company>oxage.net</Company>
+    <RepositoryUrl>https://github.com/papnkukn/qrcode-online</RepositoryUrl>
+    <Copyright />
+    <PackageIconUrl></PackageIconUrl>
+    <PackageLicenseUrl>https://github.com/papnkukn/qrcode-online/blob/master/LICENSE</PackageLicenseUrl>
+    <Description>Online QR Code generator and reader using webcam</Description>
+    <AssemblyName>QRCode</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="ZXing.Net" Version="0.16.4" />
+    <PackageReference Include="ZXing.Net.Bindings.CoreCompat.System.Drawing" Version="0.16.5-beta" />
+  </ItemGroup>
+
+</Project>

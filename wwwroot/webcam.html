@@ -1,0 +1,166 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="chrome=1">
+	<meta name="description" content="Online QR Code Scanner using a webcam">
+	<title>QR Code Scanner</title>
+	<link rel="stylesheet" type="text/css" media="screen" href="style.css">
+</head>
+<body onkeydown="keydown(event)">
+
+<div class="wrapper-wide">
+	<h2>Scan a QR Code using webcam</h2>
+	<p>Put a QR Code image in front of your webcam and click the "Capture" button or go <a href="/">back to generator</a></p>
+	
+	<div id="placeholder" class="qrcode-placeholder"></div>
+	<div id="preview" class="qrcode-placeholder" style="display: none;"></div>
+	
+	<div class="button-container">
+		<input type="button" value="Reset" onclick="retake()" class="button button-retake" />
+		<input type="button" value="Capture" onclick="capture()" class="button button-capture" />
+	</div>
+	
+</div>
+
+<script src="webcamjs/webcam.min.js"></script>
+<script>
+//Capture on "Enter" key
+function keydown(e) {
+  var e = e || window.event;
+  if (e.keyCode == 13 || e.which == 13) {
+    capture();
+  }
+}
+
+//Switch to capture mode
+function retake() {
+  document.getElementById("placeholder").style.display = "block";
+	document.getElementById("preview").style.display = "none";
+}
+
+//Capture a phone and scan QR Code
+function capture() {
+  try {
+		Webcam.snap(function(dataUri) {
+			try {
+				//Create a preview image
+				var img = document.createElement("img");
+				img.src = dataUri;
+				img.className = "qrcode-preview";
+				
+				//Switch to preview mode
+				document.getElementById("placeholder").style.display = "none";
+				document.getElementById("preview").style.display = "block";
+				document.getElementById("preview").innerHTML = "";
+				document.getElementById("preview").appendChild(img);
+				
+				//Create loading animation
+				var loader = document.createElement("div");
+				loader.className = "loader";
+				
+				//Display loading animation after a while
+				var loaderDelayShow = setTimeout(function() {
+					document.getElementById("preview").appendChild(loader);
+				}, 700);
+				
+				//Read the QR Code to get the content
+        decode(dataUri, function(error, result) {
+					//Hide loading animation
+					clearTimeout(loaderDelayShow);
+					try { document.getElementById("preview").removeChild(loader); } catch (e) { }
+					
+					//Display result
+					var p = document.createElement("p");
+					if (error) {
+						p.innerText = error.message || "Error";
+						p.className = "qrcode-result error";
+					}
+					else {
+						p.innerText = result.text;
+						p.className = "qrcode-result";
+					}
+					document.getElementById("preview").appendChild(p);
+				});
+			}
+			catch (e) {
+				alert(e.message);
+			}
+		});
+  }
+  catch (e) {
+    alert(e.message);
+  }
+}
+
+//Get the content of the QR Code from a photo
+function decode(dataUri, callback) {
+  var m = /^data:(image\/png|image\/jpeg);(base64),(.+)$/g.exec(dataUri);
+  if (!m) {
+    return callback(new Error("Unsupported data URI format!"));
+  }
+	
+	var timeout;
+
+  var data = {
+    contentType: m[1], //image/jpeg
+    encoding: m[2], //base64
+    content: m[3] //image data as base64
+  };
+
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4) {
+			if (!timeout) {
+				return; //Callback already handled by timeout function
+			}
+			
+			//Clear the timeout
+			clearTimeout(timeout);
+		
+			if (this.status >= 400) {
+				return callback(new Error("QR Code not found or cannot be decoded."));
+			}
+			
+			var result = JSON.parse(this.responseText);
+			//result = { status, type, text }
+			callback(null, result);
+    }
+  };
+
+  xhttp.open("POST", "/api/v1/decode", true);
+  xhttp.setRequestHeader("Content-type", "application/json");
+  xhttp.send(JSON.stringify(data, " ", 2));
+	
+	//Handle long uploads
+	timeout = setTimeout(function() {
+		clearTimeout(timeout);
+		timeout = null;
+		return callback(new Error("Scan has stopped, takes too long to detect a QR Code."));
+	}, 30 * 1000); //30 seconds
+}
+
+//Document ready
+document.addEventListener("DOMContentLoaded", function() {
+
+	//Camera settings
+  Webcam.set({
+		width: 640,
+		height: 480,
+		dest_width: 640,
+		dest_height: 480,
+		image_format: 'jpeg',
+		jpeg_quality: 90,
+		force_flash: false,
+		flip_horiz: false
+	});
+	
+	//Open webcam
+	Webcam.attach("#placeholder");
+	
+});
+
+</script>
+
+</body>
+</html>
